@@ -44,7 +44,7 @@ async function getLoginPage(args: Args) {
 async function main() {
   const args = getargs() as Args;
   console.log('args', args);
-  if (!args.to || !args.msg || args.repo) {
+  if (!args.to || !args.msg || !args.repo) {
     console.log(`require to=? and msg=? and repo=?`);
     return;
   }
@@ -85,13 +85,19 @@ async function gotoPullRequest(page: any, args: Args) {
   }, args);
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
   await page.waitForSelector('input[placeholder="Enter a title"]');
-  await page.type('input[placeholder="Enter a title"]', args.msg || '');
+
+  let selector = 'input[placeholder="Enter a title"]';
+  let element = await page.$(selector);
+  const title = await page.evaluate(element => element.value, element);
+  if (!title) {
+    await page.type('input[placeholder="Enter a title"]', args.msg || '');
+  }
   await page.click('.vc-pullRequestCreate-createButton button');
   await page.waitForSelector('#pull-request-vote-button');
   await page.click('#pull-request-vote-button');
   await sleep(1);
 
-  let selector = '#pull-request-complete-button';
+  selector = '#pull-request-complete-button';
   await page.waitForSelector(selector);
   await page.click(selector);
   await sleep(1);
