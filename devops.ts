@@ -50,6 +50,7 @@ async function main() {
   }
   //1. login
   const page = await getLoginPage(args);
+  //window.page = page
   //2. goto pull request
   await gotoPullRequest(page, args);
   //3. creat request
@@ -58,7 +59,9 @@ async function main() {
 
 async function gotoPullRequest(page: any, args: Args) {
   await page.goto(`${MO_DEVOPS_PROJECT_URL}/_git/${args.repo}/pullrequestcreate`, { waitUntil: 'networkidle2' });
-  await page.waitForSelector('.vss-PickListDropdown--title-textContainer');
+  await page.waitForSelector('.vss-PickListDropdown--title-textContainer', {
+        timeout: 2000*1000
+      });
   const url = await page.evaluate((args) => {
     const setSearchParam = (params: Record<string, string>) => {
       let urlInfo = new URL(window.location.href);
