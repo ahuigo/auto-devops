@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "dev": "deno run --watch main.ts"
+  },
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"]
+    },
+ "lint": {
+        "rules": {
+          "tags": ["recommended"],
+          "include": ["ban-untagged-todo","no-unused-vars"],
+          "exclude": ["no-explicit-any"]
+        }
+      },
+  "importMap": "./import_map.json"
+}
