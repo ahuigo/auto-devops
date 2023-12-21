@@ -8,7 +8,7 @@ export async function runBrowser(
 ) {
   // 不同放在外面
   const browser = await puppeteer.launch({
-    args: ["--no-sandbox"],
+    args: ["--start-maximized", "--no-sandbox"], // you can also use '--start-fullscreen'
     // executablePath: "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome",
     headless: false,
     ...options,

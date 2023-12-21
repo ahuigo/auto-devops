@@ -1,6 +1,6 @@
 import { Page } from "$puppeteer";
 import { runBrowser } from "./puppeteer/browser.ts";
-import { getArgs, sleep } from "./deps.ts";
+import { getArgs, gitLastGitLog, sleep } from "./deps.ts";
 interface Args {
   repo: string;
   from: string;
@@ -63,15 +63,13 @@ async function getLoginPage(args: Args, page: Page) {
   }
   const url = `${MO_DEVOPS_PROJECT_URL}/_git/${repo}/pullrequests?_a=mine`;
   await page.setViewport({ width: 1366, height: 768 });
-
   if (!isCookiePathValid()) {
     console.log(userpass);
-    await page.authenticate(userpass);
   } else {
     console.log("loadCookie");
     await loadCookie(page);
   }
-
+  await page.authenticate(userpass);
   await page.goto(url, { waitUntil: 'networkidle2' });
   await syncCookie(page);
 
@@ -82,8 +80,6 @@ async function getLoginPage(args: Args, page: Page) {
   //await browser.close();
 };
 
-
-
 function getHomeFile(path: string) {
   const home = Deno.env.get('HOME');
   return home + path;
@@ -91,6 +87,9 @@ function getHomeFile(path: string) {
 
 async function main() {
   const args = getArgs() as any as Args;
+  if (!args.msg) {
+    args.msg = await gitLastGitLog();
+  }
   console.log('args', args);
   if (!args.to || !args.msg || !args.repo) {
     console.log(`require to=? and msg=? and repo=?`);
@@ -107,7 +106,7 @@ async function main() {
   }, {
     headless: false,
     executablePath: "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome",
-    // args: ["--start-maximized", "--no-sandbox"],
+    args: ["--start-maximized", "--no-sandbox"],
     // '--start-maximized' // you can also use '--start-fullscreen'
   });
 
@@ -117,15 +116,18 @@ import { parse } from "$std/yaml/mod.ts";
 
 function getPassword(): string {
   const home = Deno.env.get('HOME');
-  const data = parse(Deno.readTextFileSync(home + '/.your-config.yaml')) as any;
+  const data = parse(Deno.readTextFileSync(home + '/.mo.yaml')) as any;
   return data.passwdme;
 }
 
+
 async function gotoPullRequest(page: Page, args: Args) {
   await page.goto(`${MO_DEVOPS_PROJECT_URL}/_git/${args.repo}/pullrequestcreate`, { waitUntil: 'networkidle2' });
-  await page.waitForSelector('.vss-PickListDropdown--title-textContainer', {
+  console.log("wait for request create");
+  await page.waitForSelector('.repos-pr-create-header div.version-dropdown', {
     timeout: 2000 * 1000
   });
+  console.log("goto merge to page")
   await page.evaluate((args) => {
     const setSearchParam = (params: Record<string, string>) => {
       const urlInfo = new URL(window.location.href);
@@ -149,30 +151,45 @@ async function gotoPullRequest(page: Page, args: Args) {
     location.href = url;
     return url;
   }, args);
+
+  console.log("wait merge to page networkidle0")
   await page.waitForNavigation({ waitUntil: 'networkidle0' });
+
+  console.log("wait merge to page element")
   await page.waitForSelector('input[placeholder="Enter a title"]');
 
+  console.log("get element title")
   let selector = 'input[placeholder="Enter a title"]';
   const element = await page.$(selector);
-  const title = await page.evaluate(element => element.value, element);
+  let title = await page.evaluate(element => element.value, element);
   if (!title) {
+      title = args.msg || '';
     await page.type('input[placeholder="Enter a title"]', args.msg || '');
+    await sleep(100)
   }
-  await page.click('.vc-pullRequestCreate-createButton button');
-  await page.waitForSelector('#pull-request-vote-button');
-  await page.click('#pull-request-vote-button');
-  await sleep(1000);
+  // click create
+  await page.click('button.bolt-split-button-main');
 
-  selector = '#pull-request-complete-button';
-  await page.waitForSelector(selector);
-  await page.click(selector);
-  await sleep(1000);
-  console.log('dialog');
+  // click approve button
+  selector = '.repos-pr-header-vote-button>button.bolt-split-button-main';
+  await clickSelector(page, selector);
 
-  selector = 'div[role="dialog"] .bolt-panel-footer-buttons button';
-  await page.waitForSelector(selector);
-  await page.click(selector);
-  // div = document.evaluate("//div[contains(., 'Hello')]", document, null, XPathResult.ANY_TYPE, null ).iterateNext()
+  // click auto-completn button
+  selector = 'button.bolt-split-button-main.primary[aria-disabled="false"]';
+  await clickSelector(page, selector);
+
+  selector = '#__bolt-complete';
+  await clickSelector(page, selector);
+  console.log("%cPull Request:\n" + page.url(), 'background: #222; color: green');
+  console.log("PR: "+title);
+  await sleep(1000 * 1000);
+}
+
+async function clickSelector(page: Page, selector: string) {
+  await page.waitForSelector(selector, {
+    timeout: 2000 * 1000
+  });
+  page.click(selector);
 }
 
 if (import.meta.main) {

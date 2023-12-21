@@ -17,6 +17,19 @@ export function getArgs() {
   return args;
 }
 
+export async function gitLastGitLog() {
+  const command = new Deno.Command("git", {
+    args: ['log', '-1', '--pretty=format:%s']
+  });
+  const { code, stdout, stderr } = await command.output();
+  if (code !== 0) {
+    console.log(stderr);
+    Deno.exit(1);
+  }
+  const outputString = new TextDecoder().decode(stdout);
+  return outputString;
+}
+
 export {
   Document,
   DOMParser,
