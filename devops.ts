@@ -180,8 +180,8 @@ async function gotoPullRequest(page: Page, args: Args) {
 
   selector = '#__bolt-complete';
   await clickSelector(page, selector);
+  console.log("%cPR: \n"+title, 'background: #222; color: green');
   console.log("%cPull Request:\n" + page.url(), 'background: #222; color: green');
-  console.log("PR: "+title);
   await sleep(1000 * 1000);
 }
 
