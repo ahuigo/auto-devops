@@ -70,7 +70,13 @@ async function getLoginPage(args: Args, page: Page) {
     await loadCookie(page);
   }
   await page.authenticate(userpass);
-  await page.goto(url, { waitUntil: 'networkidle2' });
+  for(let i=0; i<3; i++){
+      try{
+          await page.goto(url, { waitUntil: 'networkidle2' });
+          break;
+      }catch(e:Exception){
+      }
+  }
   await syncCookie(page);
 
   page.on('console', msg => console.log('PAGE LOG:', msg.text()));
@@ -170,18 +176,35 @@ async function gotoPullRequest(page: Page, args: Args) {
   // click create
   await page.click('button.bolt-split-button-main');
 
-  // click approve button
-  selector = '.repos-pr-header-vote-button>button.bolt-split-button-main';
-  await clickSelector(page, selector);
 
-  // click auto-completn button
+  console.log("select meget type popwindow")
+  // click auto-complete button
   selector = 'button.bolt-split-button-main.primary[aria-disabled="false"]';
   await clickSelector(page, selector);
 
-  selector = '#__bolt-complete';
+  console.log("open meget type list")
+  // open merge type window
+  /* 使用 XPath 表达式查找元素`input[aria-labelledby=__bolt-form-item-*]`
+  const xpath = "//input[starts-with(@aria-labelledby, '__bolt-form-item-')]";
+  await page.waitForXPath(xpath);
+  */
+  await clickSelector(page, `div.strategy-dropdown input`);
+  console.log("select squash")
+  // select squash merge
+  await clickSelector(page, `table[aria-label=Listbox] tr[aria-posinset="2"]`);
+  // submit complete
+  console.log("submit auto-complte")
+  selector = '#__bolt-complete'; 
   await clickSelector(page, selector);
-  console.log("%cPR: \n"+title, 'background: #222; color: green');
-  console.log("%cPull Request:\n" + page.url(), 'background: #222; color: green');
+
+
+  // click approve button
+  console.log("approve")
+  selector = '.repos-pr-header-vote-button>button.bolt-split-button-main';
+  await clickSelector(page, selector);
+
+  console.log("%cPR: " + page.url(), 'background: #222; color: green');
+  console.log("%c"+title, 'background: #222; color: green');
   await sleep(1000 * 1000);
 }
 
